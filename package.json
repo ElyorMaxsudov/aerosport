@@ -1,0 +1,24 @@
+{
+  "name": "aerosport-platform",
+  "version": "1.0.0",
+  "description": "Full-stack sports, fitness, booking and shopping web platform",
+  "scripts": {
+    "start": "node backend/server.js",
+    "build": "npm run render-build",
+    "render-build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "backend": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm run dev",
+    "seed": "cd backend && npm run seed"
+  },
+  "keywords": [
+    "sports",
+    "fitness",
+    "booking",
+    "marathon",
+    "mini-football",
+    "trainers",
+    "ecommerce"
+  ],
+  "author": "AeroSport Pro",
+  "license": "MIT"
+}

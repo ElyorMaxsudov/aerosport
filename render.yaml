@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: aerosport-platform
+    env: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm run render-build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://sensey:Tz02wW4baigi38jQ@hakaton-sensey.uklgntq.mongodb.net/sportshub?retryWrites=true&w=majority
+      - key: JWT_SECRET
+        generateValue: true

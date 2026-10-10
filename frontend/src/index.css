@@ -1,0 +1,411 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply font-sans antialiased selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-200;
+    min-height: 100vh;
+  }
+}
+
+/* ================= DARK MODE DEFAULTS ================= */
+html.dark body {
+  background-color: #020617;
+  color: #f1f5f9;
+}
+
+html.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html.dark .glass-card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.dark .glass-card:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+html.dark .bg-slate-950\/40,
+html.dark .bg-slate-950\/50,
+html.dark .bg-slate-950\/60,
+html.dark .bg-slate-950\/70,
+html.dark .bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ================= LIGHT MODE OVERRIDES ================= */
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+html.light .glass-card {
+  background: #ffffff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.04);
+}
+
+html.light .glass-card:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* Light text adjustments */
+html.light .text-white:not(.keep-white):not(.keep-white *) {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-100:not(.keep-white):not(.keep-white *) {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-200:not(.keep-white):not(.keep-white *) {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-300:not(.keep-white):not(.keep-white *) {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400:not(.keep-white):not(.keep-white *) {
+  color: #64748b !important;
+}
+
+.keep-white {
+  color: #ffffff !important;
+}
+
+.keep-white .text-white {
+  color: #ffffff !important;
+}
+
+.keep-white .text-slate-100,
+.keep-white .text-slate-200,
+.keep-white .text-slate-300 {
+  color: #e2e8f0 !important;
+}
+
+.keep-white .text-emerald-300,
+.keep-white .text-emerald-400 {
+  color: #34d399 !important;
+}
+
+.keep-white .text-amber-300,
+.keep-white .text-amber-400 {
+  color: #fcd34d !important;
+}
+
+/* Elements on dark/black backgrounds maintain light text in light mode */
+html.light [class*="bg-black"] .text-white,
+html.light [class*="bg-black/"] .text-white,
+html.light [class*="bg-black"] .text-slate-100,
+html.light [class*="bg-black/"] .text-slate-100,
+html.light [class*="bg-black"] .text-slate-200,
+html.light [class*="bg-black/"] .text-slate-200,
+html.light [class*="bg-black"] .text-slate-300,
+html.light [class*="bg-black/"] .text-slate-300 {
+  color: #ffffff !important;
+}
+
+/* Light backgrounds adjustments */
+html.light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-slate-900\/40,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-950\/40,
+html.light .bg-slate-950\/50,
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/85,
+html.light .bg-slate-950\/95 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .bg-slate-800\/40,
+html.light .bg-slate-800\/50,
+html.light .bg-slate-800\/60,
+html.light .bg-slate-800\/70,
+html.light .bg-slate-800\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .hover\:bg-slate-800:hover,
+html.light .hover\:bg-slate-900:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Light borders adjustments */
+html.light .border-slate-900 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/60 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Input fields in light mode */
+html.light input,
+html.light textarea,
+html.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Custom Sports Glow */
+.glow-emerald {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
+}
+
+.glow-orange {
+  box-shadow: 0 0 25px -5px rgba(249, 115, 22, 0.35);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Sleek Modern UI Animations */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+  50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.45); }
+}
+
+/* Page Transition Animation (Smooth tab switching) */
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-page-enter {
+  animation: pageEnter 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.animate-float-slow {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+/* Calm, silky-smooth card hover - no rapid jitter */
+.glass-card {
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.25s ease !important;
+  will-change: transform, box-shadow;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px) !important;
+}
+
+/* ================= MODAL & DRAWER ANIMATIONS ================= */
+@keyframes modalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.91) translateY(20px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.008) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes backdropFade {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(12px);
+  }
+}
+
+@keyframes drawerSlide {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideUpSmooth {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceSubtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-modal-pop {
+  animation: modalPop 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  will-change: transform, opacity;
+}
+
+.animate-backdrop-fade {
+  animation: backdropFade 0.28s ease-out forwards !important;
+  will-change: opacity, backdrop-filter;
+}
+
+.animate-drawer-slide {
+  animation: drawerSlide 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  will-change: transform, opacity;
+}
+
+.animate-slide-up-smooth {
+  animation: slideUpSmooth 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  will-change: transform, opacity;
+}
+
+.animate-bounce-subtle {
+  animation: bounceSubtle 2s ease-in-out infinite;
+}
+
+/* Tactile button press effect */
+.btn-press {
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease !important;
+}
+
+.btn-press:active {
+  transform: scale(0.96) !important;
+}
+
+/* =========================================================================
+   SILKY DROPDOWN ANIMATIONS (Opening & Closing with Spring Deceleration)
+   ========================================================================= */
+.dropdown-panel {
+  transform-origin: top right;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.25s ease;
+  will-change: transform, opacity;
+}
+
+.dropdown-panel-left {
+  transform-origin: top left;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.25s ease;
+  will-change: transform, opacity;
+}
+
+.dropdown-panel-open {
+  opacity: 1 !important;
+  transform: scale(1) translateY(0) !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+
+.dropdown-panel-closed {
+  opacity: 0 !important;
+  transform: scale(0.92) translateY(-8px) !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
