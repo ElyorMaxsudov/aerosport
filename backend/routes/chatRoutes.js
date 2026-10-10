@@ -101,8 +101,11 @@ router.post('/messages', protect, async (req, res) => {
     const targetRegion = (req.body.region || user.region || 'Toshkent shahri').trim();
     const targetDistrict = (req.body.district || user.district || 'Chilonzor tumani').trim();
 
+    const mongoose = require('mongoose');
+    const safeUserId = (user._id && mongoose.Types.ObjectId.isValid(user._id)) ? user._id : '6aca4cd299ba20eaee8be401';
+
     const newMsg = await ChatMessage.create({
-      user: user._id,
+      user: safeUserId,
       userName: user.name,
       userUsername: user.username || user.email.split('@')[0],
       userAvatar: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',

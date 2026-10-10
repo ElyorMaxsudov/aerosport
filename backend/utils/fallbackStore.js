@@ -1,12 +1,16 @@
 // High-availability fallback store for zero-downtime deployments
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
 const usersById = new Map();
 const usersByEmail = new Map();
 
-// Helper to register in-memory user
+// Helper to register in-memory user with valid ObjectId format
 const saveUser = (userData) => {
-  const id = userData._id ? String(userData._id) : 'mem_' + Date.now() + Math.random().toString(36).substring(2, 7);
+  let id = userData._id ? String(userData._id) : '';
+  if (!id || (!mongoose.Types.ObjectId.isValid(id) && !id.startsWith('seed_'))) {
+    id = new mongoose.Types.ObjectId().toString();
+  }
   const cleanEmail = userData.email.toLowerCase().trim();
   const userObj = {
     _id: id,
@@ -45,9 +49,10 @@ const saveUser = (userData) => {
   return userObj;
 };
 
-// Seed essential demo accounts in memory
-saveUser({
-  _id: 'seed_alex_001',
+// Seed essential demo accounts with valid 24-hex ObjectIds
+const alexId = '6aca4cd299ba20eaee8be401';
+const alexUser = saveUser({
+  _id: alexId,
   name: 'Alex Johnson',
   username: 'alex_athlete',
   email: 'alex@example.com',
@@ -56,9 +61,11 @@ saveUser({
   role: 'user',
   bio: 'Marathon enthusiast and weekend football player.',
 });
+usersById.set('seed_alex_001', alexUser);
 
-saveUser({
-  _id: 'seed_admin_001',
+const adminId = '6aca4cd299ba20eaee8be402';
+const adminUser = saveUser({
+  _id: adminId,
   name: 'Admin Profile',
   username: 'admin',
   email: 'admin@gmail.com',
@@ -67,9 +74,11 @@ saveUser({
   role: 'admin',
   bio: 'Bosh administrator',
 });
+usersById.set('seed_admin_001', adminUser);
 
-saveUser({
-  _id: 'seed_seller_001',
+const sellerId = '6aca4cd299ba20eaee8be403';
+const sellerUser = saveUser({
+  _id: sellerId,
   name: 'Sardor Rahimiy',
   username: 'pro_sports_shop',
   email: 'seller1@example.com',
@@ -80,6 +89,7 @@ saveUser({
   shopName: 'ProSports Tashkent',
   bio: 'Official athletic gear retailer.',
 });
+usersById.set('seed_seller_001', sellerUser);
 
 module.exports = {
   usersById,
