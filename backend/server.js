@@ -8,6 +8,9 @@ const Product = require('./models/Product');
 
 dotenv.config();
 
+const mongoose = require('mongoose');
+mongoose.set('bufferTimeoutMS', 2000);
+
 const app = express();
 
 // Connect to MongoDB
