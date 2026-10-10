@@ -68,11 +68,42 @@ const fs = require('fs');
 
 if (fs.existsSync(frontendDistPath)) {
   console.log(`📦 Serving frontend static assets from: ${frontendDistPath}`);
-  app.use(express.static(frontendDistPath));
 
-  // SPA fallback for all non-API GET routes (Express 5 compatible)
+  // Dual Domain Handler: if domain contains "admin" or path is /admin -> serve admin.html
   app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      const host = (req.headers.host || '').toLowerCase();
+      const isExplicitAdminRoute = req.path === '/admin' || req.path.startsWith('/admin/') || req.path === '/admin.html';
+      const isAdminHost = host.includes('admin') || host.includes('aerosportadmin');
+
+      if ((isAdminHost && (req.path === '/' || req.path === '')) || isExplicitAdminRoute) {
+        const adminHtmlPath = path.join(frontendDistPath, 'admin.html');
+        if (fs.existsSync(adminHtmlPath)) {
+          return res.sendFile(adminHtmlPath);
+        }
+      }
+    }
+    next();
+  });
+
+  // Serve static assets without auto-serving index.html
+  app.use(express.static(frontendDistPath, { index: false }));
+
+  // SPA fallback for all remaining non-API GET routes
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      const host = (req.headers.host || '').toLowerCase();
+      const isExplicitAdminRoute = req.path === '/admin' || req.path.startsWith('/admin/') || req.path === '/admin.html';
+      const isAdminHost = host.includes('admin') || host.includes('aerosportadmin');
+
+      if (isAdminHost || isExplicitAdminRoute) {
+        const adminHtmlPath = path.join(frontendDistPath, 'admin.html');
+        if (fs.existsSync(adminHtmlPath)) {
+          return res.sendFile(adminHtmlPath);
+        }
+      }
+
+      // Otherwise serve main customer sports platform
       return res.sendFile(path.join(frontendDistPath, 'index.html'));
     }
     next();
