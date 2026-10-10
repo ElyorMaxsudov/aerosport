@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
+const { usersById } = require('../utils/fallbackStore');
 
 const protect = async (req, res, next) => {
   let token;
@@ -11,12 +13,26 @@ const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_sportshub_jwt_key_2026_fitness_pro');
-      req.user = await User.findById(decoded.id).select('-password');
+      
+      let user = null;
+      if (mongoose.connection.readyState === 1 && !String(decoded.id).startsWith('mem_') && !String(decoded.id).startsWith('seed_')) {
+        try {
+          user = await User.findById(decoded.id).select('-password');
+        } catch (dbErr) {
+          user = null;
+        }
+      }
 
-      if (!req.user) {
+      // Check fallback store if not found in MongoDB
+      if (!user) {
+        user = usersById.get(String(decoded.id));
+      }
+
+      if (!user) {
         return res.status(401).json({ message: 'User not found for this token' });
       }
 
+      req.user = user;
       return next();
     } catch (error) {
       console.error('Auth middleware error:', error.message);
