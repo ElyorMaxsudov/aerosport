@@ -87,44 +87,79 @@ const ProfilePage = ({ setActiveTab }) => {
     }
   }, [user]);
 
+  // Client-side image resize and compress helper for smooth, instant uploads
+  const resizeImage = (file, maxWidth = 400, maxHeight = 400, quality = 0.85) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Handle local avatar file upload & instant save
-  const handleAvatarFileUpload = (e) => {
+  const handleAvatarFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("Rasm hajmi 5MB dan oshmasligi kerak", "error");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Img = reader.result;
-      setEditData((prev) => ({ ...prev, avatar: base64Img }));
-      try {
-        setSavingProfile(true);
-        await updateProfile({ ...editData, avatar: base64Img });
-        showToast("Profil rasmi muvaffaqiyatli saqlandi va yangilandi! 🎉", "success");
-        setAvatarModalOpen(false);
-      } catch (err) {
-        console.error('Failed to update avatar:', err);
-        showToast("Rasmni saqlashda xatolik yuz berdi", "error");
-      } finally {
-        setSavingProfile(false);
+    try {
+      setSavingProfile(true);
+      const compressedBase64 = await resizeImage(file, 400, 400, 0.85);
+      setEditData((prev) => ({ ...prev, avatar: compressedBase64 }));
+      await updateProfile({ ...editData, avatar: compressedBase64 });
+      showToast("Profil rasmi muvaffaqiyatli saqlandi va yangilandi! 🎉", "success");
+      setAvatarModalOpen(false);
+    } catch (err) {
+      console.error('Failed to update avatar:', err);
+      if (err.response?.status === 401) {
+        showToast("Sessiya muddati yangilanishi kerak. Iltimos profilingizga qayta kiring (Chiqish -> Kirish)", "error");
+      } else {
+        showToast(err.response?.data?.message || "Rasmni saqlashda xatolik yuz berdi", "error");
       }
-    };
-    reader.readAsDataURL(file);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleSelectAndSavePreset = async (presetUrl, label) => {
     if (!presetUrl) return;
-    setEditData((prev) => ({ ...prev, avatar: presetUrl }));
     try {
       setSavingProfile(true);
+      setEditData((prev) => ({ ...prev, avatar: presetUrl }));
       await updateProfile({ ...editData, avatar: presetUrl });
       showToast(`${label || 'Yangi'} rasmi profilga o'rnatildi! 🎉`, 'success');
       setAvatarModalOpen(false);
     } catch (err) {
       console.error('Failed to set preset avatar:', err);
-      showToast("Rasmni saqlashda xatolik yuz berdi", "error");
+      if (err.response?.status === 401) {
+        showToast("Sessiya muddati yangilanishi kerak. Iltimos profilingizga qayta kiring (Chiqish -> Kirish)", "error");
+      } else {
+        showToast(err.response?.data?.message || "Rasmni saqlashda xatolik yuz berdi", "error");
+      }
     } finally {
       setSavingProfile(false);
     }
