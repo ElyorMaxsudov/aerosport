@@ -5,10 +5,19 @@
   "scripts": {
     "start": "node backend/server.js",
     "build": "npm run render-build",
-    "render-build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "vercel-build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "render-build": "npm install --prefix backend && npm install --include=dev --prefix frontend && npm run build --prefix frontend",
     "backend": "cd backend && npm run dev",
     "frontend": "cd frontend && npm run dev",
     "seed": "cd backend && npm run seed"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.6",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.11.1"
   },
   "keywords": [
     "sports",

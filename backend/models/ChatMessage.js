@@ -40,8 +40,22 @@ const chatMessageSchema = new mongoose.Schema(
     },
     message: {
       type: String,
-      required: [true, 'Message content is required'],
+      default: '',
       trim: true,
+    },
+    messageType: {
+      type: String,
+      enum: ['text', 'audio', 'system'],
+      default: 'text',
+    },
+    audioUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    audioDuration: {
+      type: Number,
+      default: 0,
     },
     systemMessage: {
       type: Boolean,

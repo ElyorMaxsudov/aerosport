@@ -28,20 +28,21 @@ const registerUser = async (req, res) => {
     } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please provide name, email, and password' });
+      return res.status(400).json({ message: 'Ism, email va parol kiritilishi shart' });
     }
 
-    const userExists = await User.findOne({ email });
+    const cleanEmail = email.toLowerCase().trim();
+    const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+      return res.status(400).json({ message: 'Ushbu email bilan foydalanuvchi allaqachon mavjud' });
     }
 
-    const finalUsername = username ? username.trim() : email.split('@')[0];
+    const finalUsername = username ? username.trim() : cleanEmail.split('@')[0];
 
     const user = await User.create({
-      name,
+      name: name.trim(),
       username: finalUsername,
-      email,
+      email: cleanEmail,
       password,
       plainPassword: password,
       role: isSeller ? 'seller' : 'user',

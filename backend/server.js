@@ -26,11 +26,11 @@ connectDB().then(async () => {
 
 // Middleware
 app.use(cors({
-  origin: '*', // Allow Vite dev server and production origins
+  origin: true, // Echo origin so credentials work across tunnels, mobile and desktop
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Health Check
@@ -126,26 +126,31 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5050;
-app.listen(PORT, () => {
-  console.log(`🚀 SportsHub Backend Server running on http://localhost:${PORT}`);
 
-  // 24/7 Render Self-Ping Keep-Alive Mechanism
-  const RENDER_APP_URL = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
-  if (RENDER_APP_URL) {
-    const protocol = RENDER_APP_URL.startsWith('https') ? require('https') : require('http');
-    const PING_INTERVAL_MS = 10 * 60 * 1000; // Ping every 10 minutes to stay awake 24/7
-    console.log(`⏱️ 24/7 Keep-Alive self-ping enabled for: ${RENDER_APP_URL}/api/health`);
-    
-    setInterval(() => {
-      try {
-        protocol.get(`${RENDER_APP_URL}/api/health`, (res) => {
-          console.log(`💓 24/7 Keep-Alive heartbeat: ${res.statusCode} at ${new Date().toLocaleTimeString()}`);
-        }).on('error', (err) => {
-          console.warn('Keep-alive ping warning:', err.message);
-        });
-      } catch (e) {
-        // Ignore transient ping errors
-      }
-    }, PING_INTERVAL_MS);
-  }
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 SportsHub Backend Server running on http://localhost:${PORT}`);
+
+    // 24/7 Render Self-Ping Keep-Alive Mechanism
+    const RENDER_APP_URL = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+    if (RENDER_APP_URL) {
+      const protocol = RENDER_APP_URL.startsWith('https') ? require('https') : require('http');
+      const PING_INTERVAL_MS = 10 * 60 * 1000; // Ping every 10 minutes to stay awake 24/7
+      console.log(`⏱️ 24/7 Keep-Alive self-ping enabled for: ${RENDER_APP_URL}/api/health`);
+      
+      setInterval(() => {
+        try {
+          protocol.get(`${RENDER_APP_URL}/api/health`, (res) => {
+            console.log(`💓 24/7 Keep-Alive heartbeat: ${res.statusCode} at ${new Date().toLocaleTimeString()}`);
+          }).on('error', (err) => {
+            console.warn('Keep-alive ping warning:', err.message);
+          });
+        } catch (e) {
+          // Ignore transient ping errors
+        }
+      }, PING_INTERVAL_MS);
+    }
+  });
+}
+
+module.exports = app;

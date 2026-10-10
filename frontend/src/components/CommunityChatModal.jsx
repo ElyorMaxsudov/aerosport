@@ -20,12 +20,17 @@ import {
   Info,
   Trophy,
   Dumbbell,
-  Bike
+  Bike,
+  Mic,
+  Square,
+  Trash2,
+  Volume2
 } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
+import VoiceMessagePlayer from './VoiceMessagePlayer';
 
 export default function CommunityChatModal({ isOpen, onClose }) {
   const { user, isAuthenticated } = useAuth();
@@ -41,15 +46,43 @@ export default function CommunityChatModal({ isOpen, onClose }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
 
+  // Voice recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
   const messagesEndRef = useRef(null);
   const chatScrollContainerRef = useRef(null);
   const inputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingIntervalRef = useRef(null);
+  const streamRef = useRef(null);
 
   const userRegion = user?.region || 'Toshkent shahri';
   const userDistrict = user?.district || 'Chilonzor tumani';
 
   const scrollToBottom = (smooth = true) => {
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  // Voice recording cleanup on unmount or close
+  const cleanupRecording = () => {
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {}
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingDuration(0);
   };
 
   // Lock body scroll when chat is open
@@ -61,9 +94,11 @@ export default function CommunityChatModal({ isOpen, onClose }) {
     } else {
       document.body.style.overflow = '';
       setMobileInfoOpen(false);
+      cleanupRecording();
     }
     return () => {
       document.body.style.overflow = '';
+      cleanupRecording();
     };
   }, [isOpen]);
 
@@ -173,6 +208,135 @@ export default function CommunityChatModal({ isOpen, onClose }) {
     if (isBanned) return;
     setInputText((prev) => prev ? `${prev} ${text}` : text);
     inputRef.current?.focus();
+  };
+
+  // Start audio recording
+  const startVoiceRecording = async () => {
+    if (isBanned) {
+      showToast("Siz chatdan chiqarilgansiz, ovozli xabar yuborib bo'lmaydi", "error");
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast("Brauzeringiz ovoz yozishni qo'llab-quvvatlamaydi", "error");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      let mimeType = '';
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        }
+      }
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Mic access error:', err);
+      showToast("Mikrofonni yoqishga ruxsat berilmadi yoki xatolik yuz berdi", "error");
+    }
+  };
+
+  // Cancel voice recording
+  const cancelVoiceRecording = () => {
+    cleanupRecording();
+    showToast("Ovozli xabar bekor qilindi", "info");
+  };
+
+  // Stop recording and send audio message
+  const stopAndSendVoiceRecording = async () => {
+    if (!mediaRecorderRef.current || !isRecording) return;
+
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+
+    const durationToSend = Math.max(1, recordingDuration);
+    const recorder = mediaRecorderRef.current;
+
+    recorder.onstop = async () => {
+      try {
+        const mime = recorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mime });
+
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+
+        if (audioBlob.size === 0) {
+          showToast("Ovozli xabar bo'sh", "error");
+          cleanupRecording();
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Data = reader.result;
+          setIsRecording(false);
+          setRecordingDuration(0);
+
+          try {
+            setSending(true);
+            const res = await axiosClient.post('/chat/messages', {
+              message: '',
+              audioData: base64Data,
+              audioDuration: durationToSend,
+              region: userRegion,
+              district: userDistrict,
+            });
+
+            setMessages((prev) => [...prev, res.data]);
+            setTimeout(() => scrollToBottom(true), 50);
+            showToast("Ovozli xabar yuborildi! 🎤", "success");
+          } catch (sendErr) {
+            if (sendErr.response?.status === 403 && sendErr.response?.data?.isChatBanned) {
+              setIsBanned(true);
+              setBanReason(sendErr.response?.data?.chatBanReason || "Ma'muriyat tomonidan chiqarildingiz");
+              showToast(sendErr.response?.data?.message || "Siz chatdan chiqarilgansiz", "error");
+            } else {
+              showToast(sendErr.response?.data?.message || "Ovozli xabarni yuborishda xatolik", "error");
+            }
+          } finally {
+            setSending(false);
+          }
+        };
+      } catch (err) {
+        console.error('Audio processing error:', err);
+        showToast("Ovozli xabarni tayyorlashda xatolik", "error");
+        cleanupRecording();
+      }
+    };
+
+    try {
+      recorder.stop();
+    } catch (e) {
+      cleanupRecording();
+    }
   };
 
   // Filter messages by search query
@@ -512,7 +676,20 @@ export default function CommunityChatModal({ isOpen, onClose }) {
                             : 'bg-slate-900/95 border border-slate-800 text-slate-100 rounded-bl-none shadow-black/40'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{m.message}</p>
+                        {m.audioUrl || m.messageType === 'audio' ? (
+                          <div className="space-y-1.5">
+                            <VoiceMessagePlayer
+                              audioUrl={m.audioUrl}
+                              duration={m.audioDuration}
+                              isMe={isMe}
+                            />
+                            {m.message && m.message !== '🎤 Ovozli xabar' && (
+                              <p className="whitespace-pre-wrap pt-1 text-xs">{m.message}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{m.message}</p>
+                        )}
                         {isMe && (
                           <div className="flex justify-end mt-1 text-[9px] text-emerald-200/90 font-mono">
                             <CheckCheck className="w-3.5 h-3.5" />
@@ -530,50 +707,101 @@ export default function CommunityChatModal({ isOpen, onClose }) {
           {/* =========================================================================
               QUICK REACTIONS / CHIPS BAR
               ========================================================================= */}
-          {!isBanned && (
-            <div className="px-3 sm:px-6 py-2 bg-slate-900/90 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto shrink-0 select-none">
-              <span className="text-[10px] text-slate-400 font-extrabold uppercase mr-1 flex items-center gap-1 shrink-0">
-                <Smile className="w-3.5 h-3.5 text-amber-400" />
+          {!isBanned && !isRecording && (
+            <div className="px-3 sm:px-6 py-2.5 bg-slate-50 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800/80 flex items-center gap-2 overflow-x-auto shrink-0 select-none scrollbar-thin">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 mr-1 flex items-center gap-1.5 shrink-0">
+                <Smile className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                 <span>Tezkor:</span>
               </span>
               {[
-                '👋 Salom hammaga!',
-                '🏃‍♂️ Yuguramizmi?',
-                '⚽ Futbol bormi?',
-                '🔥 Zo‘r!',
-                '💪 Olg‘a sportchilar!',
-                '🚴‍♂️ Velosiped safari',
-                '🏆 Musobaqaga tayyormisiz?',
-                '⚡️ Qachon va qayerda?',
-                '👍 Rahmat',
+                { emoji: '👋', text: 'Salom hammaga!' },
+                { emoji: '🏃‍♂️', text: 'Yuguramizmi?' },
+                { emoji: '⚽', text: 'Futbol bormi?' },
+                { emoji: '🔥', text: 'Zo‘r!' },
+                { emoji: '💪', text: 'Olg‘a sportchilar!' },
+                { emoji: '🚴‍♂️', text: 'Velosiped safari' },
+                { emoji: '🏆', text: 'Musobaqaga tayyormisiz?' },
+                { emoji: '⚡️', text: 'Qachon va qayerda?' },
+                { emoji: '👍', text: 'Rahmat' },
               ].map((chip, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => addQuickReaction(chip)}
-                  className="px-2.5 py-1 rounded-xl bg-slate-800/90 hover:bg-slate-700 hover:text-white border border-slate-700/80 text-[11px] text-slate-300 font-medium transition-all shrink-0 active:scale-95"
+                  onClick={() => addQuickReaction(`${chip.emoji} ${chip.text}`)}
+                  className="chat-quick-chip active:scale-95 shadow-sm"
                 >
-                  {chip}
+                  <span className="text-sm shrink-0">{chip.emoji}</span>
+                  <span className="font-semibold whitespace-nowrap">{chip.text}</span>
                 </button>
               ))}
             </div>
           )}
 
           {/* =========================================================================
-              CHAT INPUT OR BANNED ALERT
+              CHAT INPUT OR BANNED ALERT / AUDIO RECORDING BAR
               ========================================================================= */}
-          <div className="p-3 sm:p-5 bg-slate-900/95 border-t border-slate-800 shrink-0 backdrop-blur-md">
+          <div className="p-3 sm:p-5 bg-white dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 shrink-0 backdrop-blur-md">
             {isBanned ? (
-              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-3 text-rose-300 text-xs shadow-inner">
-                <ShieldAlert className="w-7 h-7 text-rose-400 shrink-0" />
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-3 text-rose-600 dark:text-rose-300 text-xs shadow-inner">
+                <ShieldAlert className="w-7 h-7 text-rose-500 shrink-0" />
                 <div>
-                  <p className="font-extrabold text-white text-sm">
+                  <p className="font-extrabold text-slate-900 dark:text-white text-sm">
                     Siz ushbu chatdan ma'muriyat tomonidan chiqarilgansiz!
                   </p>
-                  <p className="text-xs text-rose-300 mt-0.5">
+                  <p className="text-xs text-rose-600 dark:text-rose-300 mt-0.5">
                     Sabab: <span className="font-bold underline">{banReason || "Chat qoidalariga rioya qilinmagan"}</span>
                   </p>
                 </div>
+              </div>
+            ) : isRecording ? (
+              <div className="flex items-center gap-2 sm:gap-3 max-w-6xl mx-auto p-2 sm:p-2.5 rounded-2xl bg-slate-950 border border-emerald-500/50 shadow-lg shadow-emerald-950/40 keep-white">
+                {/* Live recording timer indicator */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 shrink-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                  <span className="text-xs font-mono font-black tracking-wider text-rose-300">
+                    {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+
+                {/* Animated sound wave bars */}
+                <div className="flex-1 flex items-center gap-2 overflow-hidden px-2">
+                  <span className="text-xs font-bold text-white truncate hidden xs:inline">
+                    Ovoz yozilmoqda...
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {[12, 22, 14, 28, 18, 10, 24, 16, 28, 12, 20].map((h, i) => (
+                      <span
+                        key={i}
+                        style={{ height: `${h}px` }}
+                        className="w-1 bg-emerald-400 rounded-full animate-pulse"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cancel recording */}
+                <button
+                  type="button"
+                  onClick={cancelVoiceRecording}
+                  disabled={sending}
+                  className="px-3 sm:px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-rose-500/20 text-slate-200 hover:text-rose-300 border border-slate-800 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shrink-0"
+                  title="Bekor qilish"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-400" />
+                  <span className="hidden sm:inline">Bekor qilish</span>
+                </button>
+
+                {/* Stop & Send voice message */}
+                <button
+                  type="button"
+                  onClick={stopAndSendVoiceRecording}
+                  disabled={sending}
+                  className="px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/25 shrink-0 active:scale-95"
+                  title="Ovozli xabarni yuborish"
+                >
+                  <Send className={`w-4 h-4 ${sending ? 'animate-pulse' : ''}`} />
+                  <span>{sending ? 'Yuborilmoqda...' : 'Yuborish'}</span>
+                </button>
               </div>
             ) : (
               <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-3 max-w-6xl mx-auto">
@@ -585,12 +813,23 @@ export default function CommunityChatModal({ isOpen, onClose }) {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     disabled={sending}
-                    className="w-full pl-4 pr-10 py-3 sm:py-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-inner transition-all"
+                    className="w-full pl-4 pr-10 py-3 sm:py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 shadow-inner transition-all"
                   />
-                  <span className="absolute right-3.5 top-3.5 text-slate-500 hidden sm:block">
-                    <Smile className="w-4 h-4 cursor-pointer hover:text-amber-400 transition-colors" />
+                  <span className="absolute right-3.5 top-3.5 text-slate-400 dark:text-slate-500 hidden sm:block">
+                    <Smile className="w-4 h-4 cursor-pointer hover:text-amber-500 transition-colors" />
                   </span>
                 </div>
+
+                {/* Mic Record Button */}
+                <button
+                  type="button"
+                  onClick={startVoiceRecording}
+                  disabled={sending}
+                  className="p-3 sm:p-3.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-all flex items-center justify-center shadow-md active:scale-95 shrink-0 group"
+                  title="Ovozli xabar yozish (Mikrofon)"
+                >
+                  <Mic className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </button>
 
                 <button
                   type="submit"

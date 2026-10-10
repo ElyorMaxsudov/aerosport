@@ -1,0 +1,18 @@
+{
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/((?!api|admin|assets).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

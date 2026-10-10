@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const ChatMessage = require('../models/ChatMessage');
 const User = require('../models/User');
 const { protect, admin } = require('../middleware/authMiddleware');
@@ -65,10 +67,34 @@ router.post('/messages', protect, async (req, res) => {
       });
     }
 
-    const messageText = (req.body.message || req.body.text || '').trim();
+    const { audioUrl, audioData, audioDuration } = req.body;
+    let finalAudioUrl = (audioUrl || audioData || '').trim();
 
-    if (!messageText) {
-      return res.status(400).json({ message: "Xabar matni bo'sh bo'lishi mumkin emas" });
+    // If audio is sent as Base64 data URI (data:audio/webm;base64,...), save to disk or fallback to data URL
+    if (finalAudioUrl.startsWith('data:audio')) {
+      try {
+        const matches = finalAudioUrl.match(/^data:audio\/([a-zA-Z0-9]+);base64,(.+)$/);
+        if (matches) {
+          const extension = matches[1] === 'mpeg' ? 'mp3' : (matches[1] || 'webm');
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, 'base64');
+          const uploadDir = path.join(__dirname, '../public/uploads/audio');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+          fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+          finalAudioUrl = `/uploads/audio/${fileName}`;
+        }
+      } catch (err) {
+        console.warn('Could not save audio to disk, using data URL fallback:', err.message);
+      }
+    }
+
+    const messageText = (req.body.message || req.body.text || (finalAudioUrl ? '🎤 Ovozli xabar' : '')).trim();
+
+    if (!messageText && !finalAudioUrl) {
+      return res.status(400).json({ message: "Xabar matni yoki ovozli xabar bo'sh bo'lishi mumkin emas" });
     }
 
     // Use user's own region/district or payload if matched
@@ -84,12 +110,56 @@ router.post('/messages', protect, async (req, res) => {
       region: targetRegion,
       district: targetDistrict,
       message: messageText,
+      messageType: finalAudioUrl ? 'audio' : 'text',
+      audioUrl: finalAudioUrl,
+      audioDuration: Number(audioDuration) || 0,
       systemMessage: false,
     });
 
     res.status(201).json(newMsg);
   } catch (err) {
     console.error('Error sending chat message:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @desc    Upload voice message audio directly
+// @route   POST /api/chat/upload-audio
+// @access  Private
+router.post('/upload-audio', protect, async (req, res) => {
+  try {
+    const { audioData, audioDuration } = req.body;
+    if (!audioData) {
+      return res.status(400).json({ message: "Ovozli fayl ma'lumotlari kiritilmadi" });
+    }
+
+    let audioUrl = audioData;
+    if (audioData.startsWith('data:audio')) {
+      try {
+        const matches = audioData.match(/^data:audio\/([a-zA-Z0-9]+);base64,(.+)$/);
+        if (matches) {
+          const extension = matches[1] === 'mpeg' ? 'mp3' : (matches[1] || 'webm');
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, 'base64');
+          const uploadDir = path.join(__dirname, '../public/uploads/audio');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+          fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+          audioUrl = `/uploads/audio/${fileName}`;
+        }
+      } catch (err) {
+        console.warn('Audio save warning:', err.message);
+      }
+    }
+
+    res.json({
+      audioUrl,
+      audioDuration: Number(audioDuration) || 0,
+    });
+  } catch (err) {
+    console.error('Upload audio error:', err);
     res.status(500).json({ message: err.message });
   }
 });

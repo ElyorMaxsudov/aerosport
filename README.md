@@ -4,6 +4,14 @@
 
 ---
 
+## 🎯 Hakaton Prezentatsiyasi (Pitch Deck)
+- **Taqdimot Fayli:** [presentation.html](file:///c:/Users/USER/OneDrive/Desktop/HAKATON/presentation.html) (Brauzerda 2 marta bosib to'g'ridan-to'g'ri ochiladi)
+- **Frontend orqali ochish:** [http://localhost:5174/presentation.html](http://localhost:5174/presentation.html)
+- **Boshqaruv:** `→` / `Space` (Keyingi), `←` / `Backspace` (Oldingi), `F` (Fullscreen), `N` (Taqdimotchi nutqi eslatmalari), `G` / `Esc` (Slaydlar xaritasi), `Ctrl + P` (PDF eksport).
+- **Pitch Taymeri:** 3:00 daqiqalik o'rnatilgan taymer (start/pause/reset).
+
+---
+
 ## 🚀 Live Services & Ports
 - **Frontend URL:** [http://localhost:5174](http://localhost:5174) (or [http://localhost:5173](http://localhost:5173))
 - **Backend API:** [http://localhost:5050/api](http://localhost:5050/api)

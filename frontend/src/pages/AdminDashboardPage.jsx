@@ -58,6 +58,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import FlagIcon from '../components/FlagIcon';
+import VoiceMessagePlayer from '../components/VoiceMessagePlayer';
 import { getLocalizedProduct, categoryTranslations, badgeTranslations } from '../utils/productLocalization';
 import { UZBEKISTAN_REGIONS, getDistrictsByRegion } from '../utils/regionsData';
 
@@ -2988,9 +2989,24 @@ const AdminDashboardPage = ({ setActiveTab, onRefreshData }) => {
                                   {new Date(m.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-200 leading-relaxed font-medium">
-                                {m.message}
-                              </p>
+                              {m.audioUrl || m.messageType === 'audio' ? (
+                                <div className="space-y-1 pt-1">
+                                  <VoiceMessagePlayer
+                                    audioUrl={m.audioUrl}
+                                    duration={m.audioDuration}
+                                    compact={true}
+                                  />
+                                  {m.message && m.message !== '🎤 Ovozli xabar' && (
+                                    <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                                      {m.message}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                                  {m.message}
+                                </p>
+                              )}
                             </div>
                           </div>
 

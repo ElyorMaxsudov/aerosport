@@ -1,15 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '/api' : 'http://localhost:5050/api');
+// Use relative /api URL so requests work on localhost, LAN, and public tunnels (Cloudflare, etc.)
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 // Request interceptor to attach JWT token
